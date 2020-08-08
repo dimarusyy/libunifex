@@ -67,15 +67,15 @@ public:
         (requires same_as<remove_cvref_t<Self>, type> AND receiver<Receiver>)
     friend auto tag_invoke(tag_t<unifex::connect>, Self&& self, Receiver&& r)
         noexcept(
-            (std::is_nothrow_callable_v<member_t<Self, StateFactories>> && ... ) /*&&
+            (std::is_nothrow_callable_v<member_t<Self, StateFactories>> && ... ) &&
             std::is_nothrow_invocable_v<
                 member_t<Self, SuccessorFactory>,
-                std::invoke_result_t<member_t<Self, StateFactories>>&>,... &&
+                std::invoke_result_t<member_t<Self, StateFactories>>& ...> &&
             is_nothrow_connectable_v<
                 callable_result_t<
                     member_t<Self, SuccessorFactory>,
-                    std::invoke_result_t<member_t<Self, StateFactories>>&, ...>,
-                remove_cvref_t<Receiver>>*/) {
+                    std::invoke_result_t<member_t<Self, StateFactories>>& ...>,
+                remove_cvref_t<Receiver>>) {
         return operation<
                 member_t<Self, SuccessorFactory>, Receiver, member_t<Self, StateFactories>...>(
             static_cast<Self&&>(self).stateFactories_,
@@ -90,7 +90,7 @@ private:
 
 // Conversion helper to support in-place construction via RVO
 template<typename Target, typename Func>
-struct Converter {
+struct in_place_construction_converter {
     operator Target() {
         return func_();
     }
@@ -107,7 +107,9 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
         // using in-place construction via RVO
         state_(std::apply([](auto&&... stateFactory){
             return StateTupleT(
-                Converter<std::invoke_result_t<remove_cvref_t<decltype(stateFactory)>&&>, remove_cvref_t<decltype(stateFactory)>>{
+                in_place_construction_converter<std::invoke_result_t<
+                        remove_cvref_t<decltype(stateFactory)>&&>,
+                        remove_cvref_t<decltype(stateFactory)>>{
                     stateFactory}...
             );
         },
