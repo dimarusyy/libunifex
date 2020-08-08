@@ -85,7 +85,7 @@ public:
 
 private:
     UNIFEX_NO_UNIQUE_ADDRESS std::tuple<remove_cvref_t<StateFactories>...> stateFactories_;
-    UNIFEX_NO_UNIQUE_ADDRESS std::remove_cvref_t<SuccessorFactory> func_;
+    UNIFEX_NO_UNIQUE_ADDRESS remove_cvref_t<SuccessorFactory> func_;
 };
 
 // Conversion helper to support in-place construction via RVO
@@ -99,7 +99,7 @@ struct Converter {
 
 template<typename SuccessorFactory, typename Receiver, typename... StateFactories>
 struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
-    using StateTupleT = std::tuple<std::remove_cvref_t<callable_result_t<StateFactories>>...>;
+    using StateTupleT = std::tuple<remove_cvref_t<callable_result_t<StateFactories>>...>;
     type(std::tuple<StateFactories...>&& stateFactories, SuccessorFactory&& func, Receiver&& r) :
         stateFactories_((std::tuple<StateFactories...>&&)stateFactories),
         func_(static_cast<SuccessorFactory&&>(func)),
@@ -107,7 +107,7 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
         // using in-place construction via RVO
         state_(std::apply([](auto&&... stateFactory){
             return StateTupleT(
-                Converter<std::invoke_result_t<std::remove_cvref_t<decltype(stateFactory)>&&>, std::remove_cvref_t<decltype(stateFactory)>>{
+                Converter<std::invoke_result_t<remove_cvref_t<decltype(stateFactory)>&&>, remove_cvref_t<decltype(stateFactory)>>{
                     stateFactory}...
             );
         },
@@ -123,7 +123,7 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
     }
 
     UNIFEX_NO_UNIQUE_ADDRESS std::tuple<remove_cvref_t<StateFactories>...> stateFactories_;
-    UNIFEX_NO_UNIQUE_ADDRESS std::remove_cvref_t<SuccessorFactory> func_;
+    UNIFEX_NO_UNIQUE_ADDRESS remove_cvref_t<SuccessorFactory> func_;
     StateTupleT state_;
     connect_result_t<
         callable_result_t<SuccessorFactory&&, callable_result_t<StateFactories>&...>,
