@@ -92,7 +92,7 @@ private:
 // Conversion helper to support in-place construction via RVO
 template<typename Target, typename Func>
 struct Converter {
-    operator Target() const {
+    operator Target() {
         return std::move(func_)();
     }
     Func func_;
