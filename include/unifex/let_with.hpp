@@ -76,7 +76,6 @@ public:
                     member_t<Self, SuccessorFactory>,
                     std::invoke_result_t<member_t<Self, StateFactories>>&, ...>,
                 remove_cvref_t<Receiver>>*/) {
-
         return operation<
                 member_t<Self, SuccessorFactory>, Receiver, member_t<Self, StateFactories>...>(
             static_cast<Self&&>(self).stateFactories_,
@@ -85,37 +84,37 @@ public:
     }
 
 private:
-    UNIFEX_NO_UNIQUE_ADDRESS std::tuple<StateFactories...> stateFactories_;
-    UNIFEX_NO_UNIQUE_ADDRESS SuccessorFactory func_;
+    UNIFEX_NO_UNIQUE_ADDRESS std::tuple<remove_cvref_t<StateFactories>...> stateFactories_;
+    UNIFEX_NO_UNIQUE_ADDRESS std::remove_cvref_t<SuccessorFactory> func_;
 };
 
 // Conversion helper to support in-place construction via RVO
 template<typename Target, typename Func>
 struct Converter {
     operator Target() {
-        return std::move(func_)();
+        return func_();
     }
-    Func func_;
+    Func& func_;
 };
 
 template<typename SuccessorFactory, typename Receiver, typename... StateFactories>
 struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
-    using StateTupleT = std::tuple<std::invoke_result_t<StateFactories>...>;
+    using StateTupleT = std::tuple<std::remove_cvref_t<callable_result_t<StateFactories>>...>;
     type(std::tuple<StateFactories...>&& stateFactories, SuccessorFactory&& func, Receiver&& r) :
-        stateFactory_(static_cast<StateFactory&&>(stateFactory)),
+        stateFactories_((std::tuple<StateFactories...>&&)stateFactories),
         func_(static_cast<SuccessorFactory&&>(func)),
         // Construct the tuple of state from the tuple of factories
         // using in-place construction via RVO
         state_(std::apply([](auto&&... stateFactory){
             return StateTupleT(
                 Converter<std::invoke_result_t<std::remove_cvref_t<decltype(stateFactory)>&&>, std::remove_cvref_t<decltype(stateFactory)>>{
-                    std::move(stateFactory)}...
+                    stateFactory}...
             );
         },
-        std::move(stateFactories))),
+        stateFactories_)),
         innerOp_(
               unifex::connect(
-                std::apply(static_cast<SuccessorFactory&&>(func), state_),
+                std::apply(func_, state_),
                 static_cast<Receiver&&>(r))) {
     }
 
@@ -123,10 +122,9 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
         unifex::start(innerOp_);
     }
 
-    StateFactory stateFactory_;
-    SuccessorFactory func_;
+    UNIFEX_NO_UNIQUE_ADDRESS std::tuple<remove_cvref_t<StateFactories>...> stateFactories_;
+    UNIFEX_NO_UNIQUE_ADDRESS std::remove_cvref_t<SuccessorFactory> func_;
     StateTupleT state_;
-
     connect_result_t<
         callable_result_t<SuccessorFactory&&, callable_result_t<StateFactories>&...>,
         remove_cvref_t<Receiver>>

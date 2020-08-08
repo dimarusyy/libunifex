@@ -43,8 +43,6 @@
 
 #include <unifex/detail/prologue.hpp>
 
-#include <iostream>
-
 namespace unifex {
 namespace _find_if {
 
@@ -167,10 +165,6 @@ struct _receiver<Predecessor, Receiver, Func, FuncPolicy>::type {
         std::vector<Iterator> perChunkState;
       };
 
-      struct Test {
-        ~Test() {std::cerr << "Gone\n";}
-      };
-
       // The outer let keeps the vector of found results and the found flag
       // alive for the duration.
       // let_with constructs the vector, found_flag and the set of values
@@ -184,12 +178,12 @@ struct _receiver<Predecessor, Receiver, Func, FuncPolicy>::type {
         }
         ...,
         [func = std::move(func_), sched = std::move(sched), begin_it,
-          chunk_size, end_it, num_chunks, test = std::make_unique<Test>()](State& state, Values&... values) mutable {
+          chunk_size, end_it, num_chunks](State& state, Values&... values) mutable {
           // Inject a stop source and make it available for inner operations.
           // This stop source propagates into the algorithm through the receiver,
           // such that it will cancel the bulk_schedule operation.
           // It is also triggered if the downstream stop source is triggered.
-          return unifex::let_with_stop_source([&, test2 = std::make_unique<Test>()](unifex::inplace_stop_source& stopSource) mutable {
+          return unifex::let_with_stop_source([&](unifex::inplace_stop_source& stopSource) mutable {
             auto bulk_phase = unifex::bulk_join(
                 unifex::bulk_transform(
                   unifex::bulk_schedule(std::move(sched), num_chunks),
@@ -220,6 +214,7 @@ struct _receiver<Predecessor, Receiver, Func, FuncPolicy>::type {
                   unifex::par
                 )
               );
+
             return
               unifex::transform(
                 unifex::transform_done(

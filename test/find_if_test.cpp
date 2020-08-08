@@ -70,7 +70,6 @@ TEST(find_if, find_if_parallel) {
               just(begin(input), end(input), checkValue),
               [&](const int& v, int another_parameter) noexcept {
                 // Count to make sure that cancellation is triggered
-                std::cerr << "\tTask " << countOfTasksRun.load() << "\n";
                 countOfTasksRun++;
                 return v == another_parameter;
               },
