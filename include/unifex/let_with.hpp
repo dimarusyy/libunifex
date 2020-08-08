@@ -67,18 +67,18 @@ public:
         (requires same_as<remove_cvref_t<Self>, type> AND receiver<Receiver>)
     friend auto tag_invoke(tag_t<unifex::connect>, Self&& self, Receiver&& r)
         noexcept(
-            (std::is_nothrow_callable_v<member_t<Self, StateFactories>> && ... ) &&
+            (std::is_nothrow_callable_v<member_t<Self, StateFactories>> && ... ) /*&&
             std::is_nothrow_invocable_v<
                 member_t<Self, SuccessorFactory>,
-                callable_result_t<member_t<Self, StateFactory>>&> &&
+                std::invoke_result_t<member_t<Self, StateFactories>>&>,... &&
             is_nothrow_connectable_v<
                 callable_result_t<
                     member_t<Self, SuccessorFactory>,
-                    callable_result_t<member_t<Self, StateFactory>>&>,
-                remove_cvref_t<Receiver>>) {
+                    std::invoke_result_t<member_t<Self, StateFactories>>&, ...>,
+                remove_cvref_t<Receiver>>*/) {
 
         return operation<
-                member_t<Self, StateFactory>, member_t<Self, SuccessorFactory>, Receiver>(
+                member_t<Self, SuccessorFactory>, Receiver, member_t<Self, StateFactories>...>(
             static_cast<Self&&>(self).stateFactories_,
             static_cast<Self&&>(self).func_,
             static_cast<Receiver&&>(r));
@@ -89,17 +89,34 @@ private:
     UNIFEX_NO_UNIQUE_ADDRESS SuccessorFactory func_;
 };
 
+// Conversion helper to support in-place construction via RVO
+template<typename Target, typename Func>
+struct Converter {
+    operator Target() const {
+        return std::move(func_)();
+    }
+    Func func_;
+};
 
 template<typename SuccessorFactory, typename Receiver, typename... StateFactories>
 struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
+    using StateTupleT = std::tuple<std::invoke_result_t<StateFactories>...>;
     type(std::tuple<StateFactories...>&& stateFactories, SuccessorFactory&& func, Receiver&& r) :
         stateFactory_(static_cast<StateFactory&&>(stateFactory)),
         func_(static_cast<SuccessorFactory&&>(func)),
-        state_(/*static_cast<StateFactory&&>(stateFactory)()*/),
-        /*innerOp_(
+        // Construct the tuple of state from the tuple of factories
+        // using in-place construction via RVO
+        state_(std::apply([](auto&&... stateFactory){
+            return StateTupleT(
+                Converter<std::invoke_result_t<std::remove_cvref_t<decltype(stateFactory)>&&>, std::remove_cvref_t<decltype(stateFactory)>>{
+                    std::move(stateFactory)}...
+            );
+        },
+        std::move(stateFactories))),
+        innerOp_(
               unifex::connect(
-                static_cast<SuccessorFactory&&>(func)(state_), // TODO: apply with a helper lambda that captures SuccessorFactory by ref
-                static_cast<Receiver&&>(r)))*/ {
+                std::apply(static_cast<SuccessorFactory&&>(func), state_),
+                static_cast<Receiver&&>(r))) {
     }
 
     void start() & noexcept {
@@ -108,9 +125,10 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
 
     StateFactory stateFactory_;
     SuccessorFactory func_;
-    callable_result_t<std::tuple<callable_result_t<StateFactories>...>> state_;
+    StateTupleT state_;
+
     connect_result_t<
-        callable_result_t<SuccessorFactory, callable_result_t<StateFactory>&>,
+        callable_result_t<SuccessorFactory&&, callable_result_t<StateFactories>&...>,
         remove_cvref_t<Receiver>>
         innerOp_;
 };
@@ -130,7 +148,7 @@ struct _fn {
     template<typename SuccessorFactory, typename... StateFactories>
     auto let_with_builder(std::tuple<StateFactories...>&& stateFactories, SuccessorFactory&& successorFactory) const {
         return let_with_sender<remove_cvref_t<SuccessorFactory>, remove_cvref_t<StateFactories>...>{
-            (std::tuple<StateFactories...>&&&&)stateFactories, (SuccessorFactory&&)successor_factory};
+            (std::tuple<StateFactories...>&&)stateFactories, (SuccessorFactory&&)successorFactory};
     }
 
     template<typename StateFactory, typename SuccessorFactory>

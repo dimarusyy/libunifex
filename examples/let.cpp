@@ -101,8 +101,8 @@ int main() {
 
   std::cout << "let_with done " << *let_with_result << "\n";
 
-   // let_with example showing use with a non-moveable type and
-   // in-place construction.
+   // let_with example showing use with a non-moveable type,
+   // in-place construction and variadic state factories.
   std::optional<int> let_with_atomic_result =
       sync_wait(let_with(
         [] { return 42; },
