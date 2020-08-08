@@ -132,17 +132,7 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
 };
 
 struct _fn {
-#if 0
-    template<typename StateFactory, typename SuccessorFactory>
-    auto operator()(StateFactory&& stateFactory, SuccessorFactory&& successor_factory) const
-        noexcept(std::is_nothrow_constructible_v<remove_cvref_t<SuccessorFactory>, SuccessorFactory> &&
-                 std::is_nothrow_constructible_v<remove_cvref_t<StateFactory>, StateFactory>)
-        -> let_with_sender<remove_cvref_t<StateFactory>, remove_cvref_t<SuccessorFactory>> {
-        return let_with_sender<remove_cvref_t<StateFactory>, remove_cvref_t<SuccessorFactory>>{
-            (StateFactory&&)stateFactory, (SuccessorFactory&&)successor_factory};
-    }
-#endif
-
+private:
     template<typename SuccessorFactory, typename... StateFactories>
     auto let_with_builder(std::tuple<StateFactories...>&& stateFactories, SuccessorFactory&& successorFactory) const {
         return let_with_sender<remove_cvref_t<SuccessorFactory>, remove_cvref_t<StateFactories>...>{
