@@ -49,7 +49,7 @@ using let_with_sender = typename _sender<SuccessorFactory, StateFactories...>::t
 template<typename SuccessorFactory, typename... StateFactories>
 class _sender<SuccessorFactory, StateFactories...>::type {
 public:
-    using InnerOp = std::invoke_result_t<SuccessorFactory, std::callable_result_t<StateFactories>&...>;
+    using InnerOp = std::invoke_result_t<SuccessorFactory, callable_result_t<StateFactories>&...>;
 
     template<template<typename...> class Variant, template<typename...> class Tuple>
     using value_types = typename InnerOp::template value_types<Variant, Tuple>;
@@ -67,7 +67,7 @@ public:
         (requires same_as<remove_cvref_t<Self>, type> AND receiver<Receiver>)
     friend auto tag_invoke(tag_t<unifex::connect>, Self&& self, Receiver&& r)
         noexcept(
-            (std::is_nothrow_callable_v<member_t<Self, StateFactories>> && ... ) &&
+            (is_nothrow_callable_v<member_t<Self, StateFactories>> && ... ) &&
             std::is_nothrow_invocable_v<
                 member_t<Self, SuccessorFactory>,
                 std::invoke_result_t<member_t<Self, StateFactories>>& ...> &&
