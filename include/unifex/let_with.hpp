@@ -112,9 +112,9 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
         // Construct the tuple of state from the tuple of factories
         // using in-place construction via RVO
         state_(std::apply([](auto&&... stateFactory){
-            return StateTupleT(
+            return StateTupleT{
                 in_place_construction_helper(stateFactory)...
-            );
+            };
         },
         stateFactories_)),
         innerOp_(
