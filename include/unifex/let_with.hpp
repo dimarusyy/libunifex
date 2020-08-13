@@ -46,6 +46,9 @@ struct _sender {
 template<typename SuccessorFactory, typename... StateFactories>
 using let_with_sender = typename _sender<SuccessorFactory, StateFactories...>::type;
 
+ template<bool...Bs>
+inline constexpr bool and_v = (Bs &&...);
+
 template<typename SuccessorFactory, typename... StateFactories>
 class _sender<SuccessorFactory, StateFactories...>::type {
 public:
@@ -67,7 +70,7 @@ public:
         (requires same_as<remove_cvref_t<Self>, type> AND receiver<Receiver>)
     friend auto tag_invoke(tag_t<unifex::connect>, Self&& self, Receiver&& r)
         noexcept(
-            (is_nothrow_callable_v<member_t<Self, StateFactories>> && ... ) &&
+            (and_v<is_nothrow_callable_v<member_t<Self, StateFactories>> ...>) &&
             std::is_nothrow_invocable_v<
                 member_t<Self, SuccessorFactory>,
                 std::invoke_result_t<member_t<Self, StateFactories>>& ...> &&
