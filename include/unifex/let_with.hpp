@@ -107,7 +107,7 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
         // using in-place construction via RVO
         state_(std::apply([](auto&&... stateFactory){
             return StateTupleT(
-                in_place_construction_converter<std::invoke_result_t<
+                in_place_construction_converter<callable_result_t<
                         remove_cvref_t<decltype(stateFactory)>&&>,
                         remove_cvref_t<decltype(stateFactory)>>{
                     stateFactory}...
@@ -170,26 +170,6 @@ public:
         return let_with_builder(std::move(p.first), std::move(p.second));
     }
 };
-<<<<<<< HEAD
-
-} // namespace _let_with
-
-namespace _let_with_cpo {
-    struct _fn {
-
-        template<typename StateFactory, typename SuccessorFactory>
-        auto operator()(StateFactory&& stateFactory, SuccessorFactory&& successor_factory) const
-            noexcept(std::is_nothrow_constructible_v<std::decay_t<SuccessorFactory>, SuccessorFactory> &&
-                    std::is_nothrow_constructible_v<std::decay_t<StateFactory>, StateFactory>)
-            -> _let_with::let_with_sender<
-                 std::decay_t<StateFactory>, std::decay_t<SuccessorFactory>> {
-            return _let_with::let_with_sender<
-                std::decay_t<StateFactory>, std::decay_t<SuccessorFactory>>{
-                (StateFactory&&)stateFactory, (SuccessorFactory&&)successor_factory};
-        }
-    };
-=======
->>>>>>> working
 } // namespace _let_with_cpo
 
 inline constexpr _let_with_cpo::_fn let_with{};
