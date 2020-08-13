@@ -70,7 +70,7 @@ public:
         (requires same_as<remove_cvref_t<Self>, type> AND receiver<Receiver>)
     friend auto tag_invoke(tag_t<unifex::connect>, Self&& self, Receiver&& r)
         noexcept(
-            (and_v<is_nothrow_callable_v<member_t<Self, StateFactories>> ...>) &&
+            (and_v<is_nothrow_callable_v<member_t<Self, StateFactories>> ...> ) &&
             std::is_nothrow_invocable_v<
                 member_t<Self, SuccessorFactory>,
                 std::invoke_result_t<member_t<Self, StateFactories>>& ...> &&
@@ -91,13 +91,17 @@ private:
 };
 
 // Conversion helper to support in-place construction via RVO
-template<typename Target, typename Func>
+template<typename Func>
 struct in_place_construction_converter {
-    operator Target() {
+    operator callable_result_t<Func>() {
         return func_();
     }
     Func& func_;
 };
+template<typename T>
+auto in_place_construction_helper(T& stateFactory) {
+    return in_place_construction_converter<remove_cvref_t<T>>{stateFactory};
+}
 
 template<typename SuccessorFactory, typename Receiver, typename... StateFactories>
 struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
@@ -109,10 +113,7 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
         // using in-place construction via RVO
         state_(std::apply([](auto&&... stateFactory){
             return StateTupleT(
-                in_place_construction_converter<callable_result_t<
-                        remove_cvref_t<decltype(stateFactory)>&&>,
-                        remove_cvref_t<decltype(stateFactory)>>{
-                    stateFactory}...
+                in_place_construction_helper(stateFactory)...
             );
         },
         stateFactories_)),
