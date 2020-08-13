@@ -76,8 +76,7 @@ public:
                     member_t<Self, SuccessorFactory>,
                     std::invoke_result_t<member_t<Self, StateFactories>>& ...>,
                 remove_cvref_t<Receiver>>) {
-        return operation<
-                member_t<Self, SuccessorFactory>, Receiver, member_t<Self, StateFactories>...>(
+        return operation<SuccessorFactory, Receiver, StateFactories...>(
             static_cast<Self&&>(self).stateFactories_,
             static_cast<Self&&>(self).func_,
             static_cast<Receiver&&>(r));
@@ -125,7 +124,7 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
     }
 
     UNIFEX_NO_UNIQUE_ADDRESS std::tuple<StateFactories...> stateFactories_;
-    UNIFEX_NO_UNIQUE_ADDRESS remove_cvref_t<SuccessorFactory> func_;
+    UNIFEX_NO_UNIQUE_ADDRESS SuccessorFactory func_;
     StateTupleT state_;
     connect_result_t<
         callable_result_t<SuccessorFactory, callable_result_t<StateFactories>&...>,
