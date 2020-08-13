@@ -84,8 +84,8 @@ public:
     }
 
 private:
-    UNIFEX_NO_UNIQUE_ADDRESS std::tuple<remove_cvref_t<StateFactories>...> stateFactories_;
-    UNIFEX_NO_UNIQUE_ADDRESS std::remove_cvref_t<SuccessorFactory> func_;
+    UNIFEX_NO_UNIQUE_ADDRESS std::tuple<StateFactories...> stateFactories_;
+    UNIFEX_NO_UNIQUE_ADDRESS SuccessorFactory func_;
 };
 
 // Conversion helper to support in-place construction via RVO
@@ -124,8 +124,8 @@ struct _operation<SuccessorFactory, Receiver, StateFactories...>::type {
         unifex::start(innerOp_);
     }
 
-    UNIFEX_NO_UNIQUE_ADDRESS std::tuple<remove_cvref_t<StateFactories>...> stateFactories_;
-    UNIFEX_NO_UNIQUE_ADDRESS std::remove_cvref_t<SuccessorFactory> func_;
+    UNIFEX_NO_UNIQUE_ADDRESS std::tuple<StateFactories...> stateFactories_;
+    UNIFEX_NO_UNIQUE_ADDRESS remove_cvref_t<SuccessorFactory> func_;
     StateTupleT state_;
     connect_result_t<
         callable_result_t<SuccessorFactory, callable_result_t<StateFactories>&...>,
@@ -141,7 +141,7 @@ struct _fn {
 private:
     template<typename SuccessorFactory, typename... StateFactories>
     auto let_with_builder(std::tuple<StateFactories...>&& stateFactories, SuccessorFactory&& successorFactory) const {
-        return _let_with::let_with_sender<remove_cvref_t<SuccessorFactory>, remove_cvref_t<StateFactories>...>{
+        return _let_with::let_with_sender<std::decay_t<SuccessorFactory>, std::decay_t<StateFactories>...>{
             (std::tuple<StateFactories...>&&)stateFactories, (SuccessorFactory&&)successorFactory};
     }
 
